@@ -152,7 +152,7 @@ async def get_raw_mempool():
 @app.get("/getmempoolinfo", summary="Get Mempool Info", description="Returns detailed information about the current state of the memory pool (mempool). This includes size, memory usage, and other statistics regarding pending transactions.")
 async def get_mempool_info():
     return rpc_call_wrapper(rpc.get_mempool_info)
-# Get lottery winners (if no blockheight, just pass without arguments)
+
 # Get lottery winners (if no block height is provided, fetch the latest)
 @app.get("/getlottery/{blockheight}", summary="Get Lottery Winners by Block Height", description="Fetches the list of lottery candidates for a specified block height. The list contains addresses and their ranks in the lottery for that block.")
 @app.get("/getlottery", summary="Get Current Lottery Winners", description="Fetches the list of current lottery candidates in the race to win. If no block height is provided, it returns the latest available list of candidates since the last known block.")

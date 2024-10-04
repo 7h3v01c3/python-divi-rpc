@@ -112,7 +112,81 @@ The RPC credentials are read from either the `divi.conf` file or environment var
 
 ## Logging
 
-All RPC requests and responses are logged for debugging purposes. Logs include the RPC method, parameters, and responses from the blockchain node.
+Yes, logging in Python can easily be made optional by allowing users to configure it. You can provide a mechanism to either disable logging completely or set a desired logging level (such as only logging errors). This can be done by making the logging setup in the `main.py` or `rpc_client.py` file configurable, and adding instructions in the `README.md` for how to do so.
+
+### Update to the Code
+
+You can modify the `main.py` and `rpc_client.py` to allow for optional logging using environment variables or config parameters. Here's a way to make it configurable:
+
+#### Modify `main.py`:
+
+```python
+import os
+import logging
+
+# Set logging level based on environment variable (default to INFO)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+# Configure logging with the set log level
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
+
+# Example API definition continues...
+```
+
+#### Modify `rpc_client.py`:
+
+Since `main.py` configures the logging globally, no changes are needed in `rpc_client.py`. But if you want fine-grained control over logging, you can wrap logging calls with a condition:
+
+```python
+import logging
+
+# Check if logging is enabled globally (this can also be configured using an environment variable)
+if logging.getLogger().isEnabledFor(logging.DEBUG):
+    logging.debug(f"Debug log message here")
+```
+
+
+## Logging
+
+By default, the API logs all RPC requests and responses for debugging and monitoring purposes. You can control the logging level or disable logging entirely using an environment variable.
+
+### Disabling Logging
+
+To disable logging, set the environment variable `LOG_LEVEL` to `ERROR`, which will only log critical errors and suppress other information or debug logs.
+
+1. **Linux/macOS** (using `bash`):
+   ```bash
+   export LOG_LEVEL=ERROR
+   ```
+
+2. **Windows** (using `cmd`):
+   ```cmd
+   set LOG_LEVEL=ERROR
+   ```
+
+Alternatively, to **disable logging completely**, set the `LOG_LEVEL` to `CRITICAL`:
+```bash
+export LOG_LEVEL=CRITICAL
+```
+
+### Custom Logging Levels
+
+The following logging levels are available, listed in increasing order of severity:
+- `DEBUG`: Logs all debugging information, useful for troubleshooting.
+- `INFO`: Logs general information (default).
+- `WARNING`: Logs warning messages.
+- `ERROR`: Logs only error messages.
+- `CRITICAL`: Logs only critical errors (most severe).
+
+To set a custom logging level, use:
+
+```bash
+export LOG_LEVEL=DEBUG  # or INFO, WARNING, ERROR, CRITICAL
+```
+
+This allows you to control the verbosity of the logging based on your needs during development or production.
+
+---
 
 ## License
 
