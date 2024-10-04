@@ -184,7 +184,59 @@ To set a custom logging level, use:
 export LOG_LEVEL=DEBUG  # or INFO, WARNING, ERROR, CRITICAL
 ```
 
-This allows you to control the verbosity of the logging based on your needs during development or production.
+
+
+## CORS PLEASE READ!! (Cross-Origin Resource Sharing)
+
+**CORS** is enabled by default in this application to allow cross-origin requests, which is helpful during development. However, enabling CORS for all origins can expose your API to security vulnerabilities, especially in production environments.
+
+### Disabling or Restricting CORS
+
+1. **Disabling CORS** (Recommended for production):
+
+   To disable CORS entirely (no external domains allowed to make requests), comment out or remove the following block in `main.py`:
+
+   ```python
+   # app.add_middleware(
+   #     CORSMiddleware,
+   #     allow_origins=["*"],
+   #     allow_credentials=True,
+   #     allow_methods=["*"],
+   #     allow_headers=["*"],
+   # )
+   ```
+
+2. **Restricting CORS to Trusted Domains**:
+
+   If you need to allow only specific trusted domains to make requests, modify the `allow_origins` list:
+
+   ```python
+   app.add_middleware(
+       CORSMiddleware,
+       allow_origins=["https://trusted-domain.com"],  # Replace with your domain
+       allow_credentials=True,
+       allow_methods=["GET", "POST"],  # Limit allowed methods for more security
+       allow_headers=["Content-Type"],  # Limit allowed headers
+   )
+   ```
+
+3. **Enabling CORS for Development**:
+
+   During development, you can leave CORS enabled for all origins:
+
+   ```python
+   app.add_middleware(
+       CORSMiddleware,
+       allow_origins=["*"],  # Allows all domains (only for development)
+       allow_credentials=True,
+       allow_methods=["*"],
+       allow_headers=["*"],
+   )
+   ```
+
+### Caution
+
+- Allowing `allow_origins=["*"]` in production can expose your API to security risks. Ensure you review and restrict CORS as needed based on your use case.
 
 ---
 
