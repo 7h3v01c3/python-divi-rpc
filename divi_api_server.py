@@ -41,7 +41,7 @@ async def log_requests(request: Request, call_next):
 # Helper function for successful responses
 def handle_rpc_response(result):
     return {
-        "result": result,
+        **result,
         "error": None,
         "timestamp_utc": datetime.now(timezone.utc).isoformat() # Add UTC timestamp
     }
