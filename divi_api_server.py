@@ -1,18 +1,22 @@
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from rpc_client import RpcClient
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
+
 
 app = FastAPI(
     title="Divi Blockchain API",
     description="API for interacting with the Divi Blockchain via RPC calls",
     version="1.0.0"
 )
+
 
 # CORS middleware for handling cross-origin requests during testing on local machine
 app.add_middleware(
@@ -29,7 +33,8 @@ rpc = RpcClient()
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     ip = request.client.host
-    print(f"IP Address: {ip}, Time: {request.headers.get('date')}")
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"IP Address: {ip}, Time: {current_time}")
     response = await call_next(request)
     return response
 
@@ -38,7 +43,7 @@ def handle_rpc_response(result):
     return {
         "result": result,
         "error": None,
-        "timestamp": datetime.utcnow().isoformat()  # Add UTC timestamp
+        "timestamp_utc": datetime.now(timezone.utc).isoformat() # Add UTC timestamp
     }
 
 # Helper function for error responses
@@ -48,7 +53,7 @@ def handle_rpc_error(error_msg):
         "error": {
             "message": error_msg
         },
-        "timestamp": datetime.utcnow().isoformat()  # Add UTC timestamp
+        "timestamp": datetime.now(timezone.utc).isoformat() # Add UTC timestamp
     }
 
 # Helper for exception handling
@@ -88,7 +93,7 @@ async def get_block_hash(block: int):
     return rpc_call_wrapper(rpc.get_block_hash, block)
 
 
-# Verbose info about the ecosystem
+# Current General Blockchain Stats
 @app.get("/info")
 async def get_info():
     return rpc_call_wrapper(rpc.get_info)
