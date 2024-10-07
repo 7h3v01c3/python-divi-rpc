@@ -1,11 +1,12 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from rpc_client import RpcClient
 from datetime import datetime, timezone
+import requests
 import logging
 
 logging.basicConfig(level=logging.ERROR)
@@ -17,6 +18,33 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.exception_handler(HTTPException)
+async def custom_http_exception_handler(request: Request, exc: HTTPException):
+    # Log the error for debugging
+    logging.error(f"HTTP Exception: {exc.detail}")
+
+    # Check if detail is a string and jsonify it
+    content = (
+        {"error": exc.status_code, "message": exc.detail}
+        if isinstance(exc.detail, str)
+        else exc.detail
+    )
+    return JSONResponse(status_code=exc.status_code, content=content)
+
+
+@app.exception_handler(Exception)
+async def generic_500_handler(request: Request, exc: Exception):
+    # Log the error for debugging
+    logging.error(f"Internal server error: {exc}")
+
+    # Return a funny custom message for the user
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": 500,
+            "message": "Oops! Looks like something went wrong. Either the universe just exploded, or you used the wrong API function. Try again, newb!"
+        },
+    )
 
 # CORS middleware for handling cross-origin requests during testing on local machine
 app.add_middleware(
@@ -61,8 +89,22 @@ def rpc_call_wrapper(callable, *args):
     try:
         result = callable(*args)
         return handle_rpc_response(result)
+
+    except requests.exceptions.ConnectionError:
+        # Specific error message if the daemon is unreachable
+        raise HTTPException(status_code=503, detail="Service Unavailable. Try again later.")
+
+    except requests.exceptions.Timeout:
+        # Specific error message for timeout errors
+        raise HTTPException(status_code=504, detail="Request Timeout. Service took too long to respond. Try again later.")
+
+    except requests.exceptions.HTTPError as e:
+        # Handles HTTP errors such as 401 Unauthorized, 404 Not Found, etc.
+        raise HTTPException(status_code=401, detail=f"Oops! There was an HTTP error: {str(e)}. Check your request and try again.")
+
     except Exception as e:
-        return handle_rpc_error(str(e))
+        # Catch-all for any other unhandled exceptions
+        raise HTTPException(status_code=500, detail="Oops! Looks like something broke. Either the universe just exploded, or you used the wrong API function. Try again, newb!")
 
 # Convert string "true" or "false" to bool manually
 def str_to_bool(value: str) -> bool:
