@@ -7,6 +7,7 @@ from typing import Optional
 from rpc_client import RpcClient
 from datetime import datetime, timezone
 import logging
+from config import  config
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -176,4 +177,4 @@ async def get_lottery(blockheight: Optional[int] = None):
 # Run app if executed directly
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host=config['host'], port=config['port'])

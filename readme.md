@@ -39,12 +39,17 @@ This repository provides a FastAPI-based application to interact with the Divi B
    - **macOS**: `~/Library/Application Support/DIVI/divi.conf`
    - **Linux**: `~/.divi/divi.conf`
    
-   Alternatively, set environment variables for `RPC_USER`, `RPC_PASS`, and `RPC_PORT`:
+   Alternatively, set environment variables for `RPC_USER`, `RPC_PASS`, `RPC_PORT`, `RPC_HOST`, `HOST`, `PORT`:
    
    ```bash
+   # These define where to connect to the Divi node
    export RPC_USER=your_rpc_user
    export RPC_PASS=your_rpc_password
    export RPC_PORT=your_rpc_port  # default is 51473
+   export RPC_HOST=your_rpc_host  # default is 127.0.0.1
+   # These define where to bind the API server
+   export HOST=your_host  # default is 127.0.0.1
+   export PORT=your_port  # default is 8000
    ```
 
 ## Running the API

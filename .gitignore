@@ -141,3 +141,4 @@ Dockerfile.*
 # Local environment variables
 .env.local
 .env.*.local
+.env
