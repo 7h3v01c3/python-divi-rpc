@@ -52,7 +52,7 @@ This repository provides a FastAPI-based application to interact with the Divi B
 1. Start the FastAPI server using `uvicorn`:
 
    ```bash
-   uvicorn main:app --reload
+   uvicorn divi_api_server:app --reload
    ```
 
    The server will run on `http://127.0.0.1:8000/`.
