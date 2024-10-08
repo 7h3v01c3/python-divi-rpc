@@ -33,23 +33,63 @@ This repository provides a FastAPI-based application to interact with the Divi B
 
 3. Configure your Divi node's RPC credentials:
 
-   Ensure you have a `divi.conf` file with the proper `rpcuser`, `rpcpassword`, and `rpcport` configured. The config file is typically located in:
+   There are three ways to configure your Divi node's RPC credentials:
+
+   - Using a `divi.conf` file
    
-   - **Windows**: `C:\Users\YourUser\AppData\Roaming\DIVI\divi.conf`
-   - **macOS**: `~/Library/Application Support/DIVI/divi.conf`
-   - **Linux**: `~/.divi/divi.conf`
+      Ensure you have a `divi.conf` file with the proper `rpcuser`, `rpcpassword`, and `rpcport` configured. The config file is typically located in:
+      - **Windows**: `C:\Users\YourUser\AppData\Roaming\DIVI\divi.conf`
+      - **macOS**: `~/Library/Application Support/DIVI/divi.conf`
+      - **Linux**: `~/.divi/divi.conf`
+
+   - Using environment variables
+      ```bash
+      # These define where to connect to the Divi node
+      export RPC_USER=your_rpc_user
+      export RPC_PASS=your_rpc_password
+      export RPC_PORT=your_rpc_port  # default is 51473
+      export RPC_HOST=your_rpc_host  # default is 127.0.0.1
+      # These define where to bind the API server
+      export HOST=your_host  # default is 127.0.0.1
+      export PORT=your_port  # default is 8000
+      export IGNORE_DIVID_CONF=TRUE # Use this to skip checking for a divid.conf file
+      ```
+
+   - Using a `.env` file
+
+      Create a `.env.local` file in the root of the project with the following content:
    
-   Alternatively, set environment variables for `RPC_USER`, `RPC_PASS`, `RPC_PORT`, `RPC_HOST`, `HOST`, `PORT`:
+      ```bash
+      RPC_USER=your_rpc_user
+      RPC_PASS=your_rpc_password
+      RPC_PORT=your_rpc_port  # default is 51473
+      RPC_HOST=your_rpc_host  # default is 127.0.0.1
+      HOST=your_host  # default is 127.0.0.1
+      PORT=your_port  # default is 8000
+      IGNORE_DIVID_CONF=TRUE # Use this to skip checking for a divid.conf file
+      ```
+
    
+
+
+## Docker
+
+To run the API using Docker, follow these steps:
+
+1. Build the Docker image:
+
    ```bash
-   # These define where to connect to the Divi node
-   export RPC_USER=your_rpc_user
-   export RPC_PASS=your_rpc_password
-   export RPC_PORT=your_rpc_port  # default is 51473
-   export RPC_HOST=your_rpc_host  # default is 127.0.0.1
-   # These define where to bind the API server
-   export HOST=your_host  # default is 127.0.0.1
-   export PORT=your_port  # default is 8000
+   docker build -t divi_api_image -f docker/Dockerfile .
+   ```
+
+2. Run the Docker container:
+
+   ```bash
+   docker run -d \
+   --env-file .env.local \
+   -p 8000:8000 \
+   --name divi_api_container \
+   divi_api_image
    ```
 
 ## Running the API
