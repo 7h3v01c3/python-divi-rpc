@@ -72,30 +72,27 @@ async def log_requests(request: Request, call_next) :
 
 
 # Helper function for successful responses
-def handle_rpc_response(result) :
-    # If result is a dictionary or list, we assume it’s a structured response.
-    if isinstance(result, (dict, list)) :
-        return {
-            "result" : result,
-            "error" : None,
-            "timestamp_utc" : datetime.now(timezone.utc).isoformat()
-        }
-    # If result is an integer or other simple type, return directly in the response format.
-    else :
-        return {
-            "result" : result,
-            "error" : None,
-            "timestamp_utc" : datetime.now(timezone.utc).isoformat()
-        }
+def handle_rpc_response(result):
+    # Check if the result itself is a dictionary with a "result" key
+    if isinstance(result, dict) and "result" in result:
+        # Unwrap the inner result if it has "result" key at the top level
+        result = result["result"]
+
+    # Return structured response
+    return {
+        "result": result,
+        "error": None,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat()
+    }
 
 # Helper function for error responses
-def handle_rpc_error(error_msg) :
+def handle_rpc_error(error_msg):
     return {
-        "result" : None,
-        "error" : {
-            "message" : error_msg
+        "result": None,
+        "error": {
+            "message": error_msg
         },
-        "timestamp" : datetime.now(timezone.utc).isoformat()  # Add UTC timestamp
+        "timestamp": datetime.now(timezone.utc).isoformat()  # Add UTC timestamp
     }
 
 def rpc_call_wrapper(callable, *args) :
