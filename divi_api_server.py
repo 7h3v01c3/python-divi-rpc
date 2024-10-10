@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from rpc_client import RpcClient
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 import logging
 from config import  config
@@ -18,6 +18,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Cache settings
+cache = {"data": None, "timestamp": None}
+CACHE_DURATION = timedelta(hours=5)
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
@@ -158,19 +161,85 @@ async def get_block_hash(block: int):
 async def get_info():
     return rpc_call_wrapper(rpc.get_info)
 
+# Total number of connected peers
+@app.get("/connectioncount", summary="Get Total Number of Connected Peers",
+         description="Returns the current number of peers connected to the node. This includes both incoming and outgoing connections, providing an overview of the network's health.")
+async def get_connection_count():
+    return rpc_call_wrapper(rpc.get_connection_count)
 
+# Filtered peers list
+def split_ip_port(address):
+    # For IPv6 with brackets, remove them and split on `]:`
+    if address.startswith('['):
+        ip = address[1:].split(']:')[0]
+        port = address.split(']:')[-1]
+    else:
+        # For IPv4, just split on `:`
+        ip, port = address.split(':')
+    return ip, port
+
+@app.get("/getpeers", summary="Get Filtered Peer List", description="Returns a list of peers filtered by DIVI Core version and block height.")
+async def get_peers(include_ipv6: bool = False):
+    global cache
+
+    # Check cache
+    now = datetime.now(timezone.utc)
+    if cache["data"] and cache["timestamp"] and now - cache["timestamp"] < CACHE_DURATION:
+        return cache["data"]
+
+    try:
+        # Get current block count
+        block_count = rpc.get_block_count()
+        if block_count is None:
+            raise HTTPException(status_code=500, detail="Unable to retrieve block count.")
+
+        # Get peer information
+        peer_info = rpc.get_peer_info()
+        if not peer_info:
+            raise HTTPException(status_code=500, detail="Unable to retrieve peer information.")
+
+        # Filter peers based on criteria
+        filtered_peers = {}
+        for peer in peer_info:
+            subver = peer.get("subver", "")
+            starting_height = peer.get("startingheight", 0)
+            addr = peer.get("addr", "")
+
+            # Exclude IPv6 addresses if include_ipv6 is False
+            if not include_ipv6 and addr.startswith('['):
+                continue
+
+            # Extract the IP and port from the address
+            ip_address, port = split_ip_port(addr)
+
+            # Check subversion and block height criteria
+            if subver >= "DIVI Core: 3.0.0.0" and starting_height >= block_count - 1000:
+                if subver not in filtered_peers:
+                    filtered_peers[subver] = []
+                filtered_peers[subver].append({"ip": ip_address, "port": port})
+
+        # Structure the result
+        result = {
+            "result": [{"core": ver, "peers": peers} for ver, peers in filtered_peers.items()],
+            "error": None,
+            "id": 1,
+            "timestamp_utc": now.isoformat()
+        }
+
+        # Update cache
+        cache["data"] = result
+        cache["timestamp"] = now
+
+        return result
+
+    except Exception as e:
+        return {"error": str(e), "timestamp": now.isoformat()}
 # Check transaction details
 @app.get("/tx/{txid}", summary="Get Transaction",
          description="Fetches details about a specific transaction based on its txid.")
 async def get_transaction(txid: str):
     return rpc_call_wrapper(rpc.get_raw_transaction, txid, True)
 
-
-# Total number of connected peers
-@app.get("/connectioncount", summary="Get Total Number of Connected Peers",
-         description="Returns the current number of peers connected to the node. This includes both incoming and outgoing connections, providing an overview of the network's health.")
-async def get_connection_count():
-    return rpc_call_wrapper(rpc.get_connection_count)
 
 
 # Get address balance current and total received

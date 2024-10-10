@@ -49,7 +49,8 @@ class RpcClient:
 
     # Block-related RPCs
     def get_block_count(self):
-        return self.call('getblockcount')
+        response = self.call('getblockcount')
+        return response.get('result')
 
     def get_block(self, block_hash, verbosity=True):
         return self.call('getblock', [block_hash, verbosity])
@@ -76,6 +77,11 @@ class RpcClient:
     # Network-related RPCs
     def get_connection_count(self):
         return self.call('getconnectioncount')
+
+    # Fetch the peer information
+    def get_peer_info(self):
+        response = self.call('getpeerinfo')
+        return response.get('result', [])
 
     # Info-related RPCs
     def get_info(self):
