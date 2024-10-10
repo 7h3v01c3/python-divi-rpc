@@ -71,7 +71,7 @@ async def log_requests(request: Request, call_next) :
     return response
 
 
-# Helper function for successful responses
+# RPC Response hander
 def handle_rpc_response(result):
     # Check if the result itself is a dictionary with a "result" key
     if isinstance(result, dict) and "result" in result:
@@ -85,7 +85,7 @@ def handle_rpc_response(result):
         "timestamp_utc": datetime.now(timezone.utc).isoformat()
     }
 
-# Helper function for error responses
+# RPC Error handler
 def handle_rpc_error(error_msg):
     return {
         "result": None,
