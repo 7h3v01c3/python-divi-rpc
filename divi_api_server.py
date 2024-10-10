@@ -51,14 +51,20 @@ async def generic_500_handler(request: Request, exc: Exception) :
     )
 
 # CORS middleware for handling cross-origin requests during testing on local machine
+origins = [
+    "https://api.yourdomain.com",  # Only the primary domain
+    # "http://localhost",           # Uncomment for local development
+    # "http://localhost:3000",      # Uncomment for local frontend testing
+    # "https://YOUR_IP_ADDRESS",    # Only if necessary for direct IP access
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = ["*"],
-    allow_credentials = True,
-    allow_methods = ["*"],
-    allow_headers = ["*"],
+    allow_origins=origins,            # Restrict to specific origins
+    allow_credentials=False,          # Set to False if not using credentials like cookies
+    allow_methods=["GET", "POST"],    # Restrict to necessary methods
+    allow_headers=["Content-Type", "Authorization"],  # Specify only required headers
 )
-
 rpc = RpcClient()
 
 # Middleware for logging IP addresses
