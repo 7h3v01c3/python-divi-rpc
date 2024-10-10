@@ -75,12 +75,20 @@ async def log_requests(request: Request, call_next):
 
 # Helper function for successful responses
 def handle_rpc_response(result):
-    return {
-        **result,
-        "error": None,
-        "timestamp_utc": datetime.now(timezone.utc).isoformat()  # Add UTC timestamp
-    }
-
+    # If result is a dictionary or list, we assume it’s a structured response.
+    if isinstance(result, (dict, list)):
+        return {
+            "result": result,
+            "error": None,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat()
+        }
+    # If result is an integer or other simple type, return directly in the response format.
+    else:
+        return {
+            "result": result,
+            "error": None,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat()
+        }
 
 # Helper function for error responses
 def handle_rpc_error(error_msg):
@@ -93,30 +101,21 @@ def handle_rpc_error(error_msg):
     }
 
 
-# Helper for exception handling
 def rpc_call_wrapper(callable, *args):
     try:
         result = callable(*args)
         return handle_rpc_response(result)
-
     except requests.exceptions.ConnectionError:
-        # Specific error message if the daemon is unreachable
-        raise HTTPException(status_code=503, detail="Service Unavailable. Try again later.")
-
+        raise HTTPException(status_code = 503, detail = "Service Unavailable. Try again later.")
     except requests.exceptions.Timeout:
-        # Specific error message for timeout errors
-        raise HTTPException(status_code=504,
-                            detail="Request Timeout. Service took too long to respond. Try again later.")
-
+        raise HTTPException(status_code = 504,
+                            detail = "Request Timeout. Service took too long to respond. Try again later.")
     except requests.exceptions.HTTPError as e:
-        # Handles HTTP errors such as 401 Unauthorized, 404 Not Found, etc.
-        raise HTTPException(status_code=401,
-                            detail=f"Oops! There was an HTTP error: {str(e)}. Check your request and try again.")
-
+        raise HTTPException(status_code = 401,
+                            detail = f"Oops! There was an HTTP error: {str(e)}. Check your request and try again.")
     except Exception as e:
-        # Catch-all for any other unhandled exceptions
-        raise HTTPException(status_code=500,
-                            detail="Oops! Looks like something broke. Either the universe just exploded, or you used the wrong API function. Try again, newb!")
+        raise HTTPException(status_code = 500,
+                            detail = "Oops! Looks like something broke. Either the universe just exploded, or you used the wrong API function. Try again, newb!")
 
 
 # Convert string "true" or "false" to bool manually
