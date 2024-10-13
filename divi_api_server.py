@@ -319,16 +319,21 @@ async def decode_raw_transaction(hex: str) :
 
 
 # Send raw transaction
-@app.post("/sendrawtransaction",
-          summary = "Send Raw Transaction",
-          description = "Broadcasts a raw transaction to the blockchain network. The raw transaction must be provided as a hex string. Optionally, allow high fees.")
-async def send_raw_transaction(hexstring: str, allowhighfees: bool = False) :
-    # Validate that hexstring is a non-empty string
-    if not hexstring or not isinstance(hexstring, str) :
-        raise HTTPException(status_code = 400, detail = "Invalid hexstring provided")
+class SendRawTransactionRequest(BaseModel):
+    hexstring: str
 
-    # Call the RPC client with the hexstring and allowhighfees
-    return rpc_call_wrapper(rpc.send_raw_transaction, hexstring, allowhighfees)
+@app.post("/sendrawtransaction/{hexstring}",
+          summary="Send Raw Transaction",
+          description="Broadcasts a raw transaction to the blockchain network.")
+
+async def send_raw_transaction(hexstring: str):
+    # Validate that hexstring is a non-empty string
+    if not hexstring:
+        raise HTTPException(status_code=400, detail="Invalid hexstring provided")
+
+    # Call the RPC client with the hexstring
+    return rpc_call_wrapper(rpc.send_raw_transaction, hexstring)
+
 
 
 # Get current mempool transactions

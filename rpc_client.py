@@ -68,8 +68,8 @@ class RpcClient:
         verbose_value = 1 if verbose else 0  # Convert True to 1, False to 0
         return self.call('getrawtransaction', [txid, verbose_value])
 
-    def send_raw_transaction(self, hexstring, allow_high_fees=False):
-        return self.call('sendrawtransaction', [hexstring, allow_high_fees])
+    def send_raw_transaction(self, hexstring) :
+        return self.call('sendrawtransaction', [hexstring])
 
     def decode_raw_transaction(self, hexstring):
         return self.call('decoderawtransaction', [hexstring])
