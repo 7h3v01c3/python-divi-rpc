@@ -373,4 +373,24 @@ async def get_mempool_info() :
     description = (
             "Fetches the list of lottery candidates for a specific block if a block height is provided. "
             "If no block height is entered, it returns the current list of candidates. "
-            "On the block where the lottery payout occurs, the list is 
+            "On the block where the lottery payout occurs, the list is purged."
+    )
+)
+
+async def get_lottery(blockheight: Optional[int] = None) :
+    try :
+        if blockheight is not None :
+            # Blockheight provided, fetch for the specific block
+            result = rpc.get_lottery_block_winners(blockheight)
+        else :
+            # No blockheight provided, fetch latest lottery winners
+            result = rpc.get_lottery_block_winners()
+        return handle_rpc_response(result)
+    except Exception as e :
+        return handle_rpc_error(str(e))
+
+# Run app if executed directly
+if __name__ == "__main__" :
+    import uvicorn
+
+    uvicorn.run(app, host = config['host'], port = config['port'])
