@@ -211,53 +211,67 @@ def split_ip_port(address) :
         ip, port = address.split(':')
     return ip, port
 
-@app.get("/getpeers", summary = "Get Filtered Peer List",
-         description = "Returns a list of peers filtered by DIVI Core version and block height.")
-async def get_peers(include_ipv6: bool = False) :
+@app.get("/getpeers", summary="Get Filtered Peer List",
+         description="Returns a list of peers filtered by DIVI Core version and block height.")
+async def get_peers(include_ipv6: bool = False):
     global cache
 
     # Check cache
     now = datetime.now(timezone.utc)
-    if cache["data"] and cache["timestamp"] and now - cache["timestamp"] < CACHE_DURATION :
+    if cache["data"] and cache["timestamp"] and now - cache["timestamp"] < CACHE_DURATION:
         return cache["data"]
 
-    try :
+    try:
         # Get current block count
-        block_count = rpc.get_block_count()
-        if block_count is None :
-            raise HTTPException(status_code = 500, detail = "Unable to retrieve block count.")
+        block_count = rpc["get_block_count"]()
+        if block_count is None:
+            return {"error": "Unable to retrieve block count."}
 
         # Get peer information
-        peer_info = rpc.get_peer_info()
-        if not peer_info :
-            raise HTTPException(status_code = 500, detail = "Unable to retrieve peer information.")
+        peer_info = rpc["get_peer_info"]()
+        if not peer_info:
+            return {"error": "Unable to retrieve peer information."}
 
         # Filter peers based on criteria
         filtered_peers = {}
-        for peer in peer_info :
+        for peer in peer_info:
             subver = peer.get("subver", "")
-            synced_blocks = peer.get("synced_blocks", 0)
+            synced_blocks = peer.get("synced_blocks", -1)
+            synced_headers = peer.get("synced_headers", -1)
+            conntime = peer.get("conntime", 0)
             addr = peer.get("addr", "")
 
             # Exclude IPv6 addresses if include_ipv6 is False
-            if not include_ipv6 and addr.startswith('[') :
+            if not include_ipv6 and addr.startswith('['):
                 continue
 
             # Extract the IP and port from the address
             ip_address, port = split_ip_port(addr)
 
-            # Check subversion and block height criteria
-            if subver >= "DIVI Core: 3.0.0.0" and synced_blocks >= block_count - 1000 :
-                if subver not in filtered_peers :
-                    filtered_peers[subver] = []
-                filtered_peers[subver].append({"ip" : ip_address, "port" : port})
+            # Grace period for new peers (5 minutes)
+            time_since_connection = now.timestamp() - conntime
+            if time_since_connection < 300:  # Ignore very recent peers
+                continue
+
+            # Healthy peers: version 3.0.0.0+, synced_blocks within 1000 of current height
+            if subver >= "DIVI Core: 3.0.0.0":
+                if synced_blocks >= block_count - 1000 or (
+                    synced_blocks == -1 and synced_headers >= block_count - 1000
+                ):
+                    # Include as healthy
+                    if subver not in filtered_peers:
+                        filtered_peers[subver] = []
+                    filtered_peers[subver].append({"ip": ip_address, "port": port})
+                # Exclude aberrant peers (headers or blocks far out of sync)
+                elif synced_blocks < block_count - 1000 or synced_headers < block_count - 1000:
+                    continue
 
         # Structure the result
         result = {
-            "result" : [{"core" : ver, "peers" : peers} for ver, peers in filtered_peers.items()],
-            "error" : None,
-            "id" : 1,
-            "timestamp_utc" : now.isoformat()
+            "result": [{"core": ver, "peers": peers} for ver, peers in filtered_peers.items()],
+            "error": None,
+            "id": 1,
+            "timestamp_utc": now.isoformat()
         }
 
         # Update cache
@@ -266,8 +280,8 @@ async def get_peers(include_ipv6: bool = False) :
 
         return result
 
-    except Exception as e :
-        return {"error" : str(e), "timestamp" : now.isoformat()}
+    except Exception as e:
+        return {"error": str(e), "timestamp": now.isoformat()}
 
 
 # Check transaction details
