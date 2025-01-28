@@ -236,7 +236,7 @@ async def get_peers(include_ipv6: bool = False) :
         filtered_peers = {}
         for peer in peer_info :
             subver = peer.get("subver", "")
-            starting_height = peer.get("startingheight", 0)
+            synced_blocks = peer.get("synced_blocks", 0)
             addr = peer.get("addr", "")
 
             # Exclude IPv6 addresses if include_ipv6 is False
@@ -247,7 +247,7 @@ async def get_peers(include_ipv6: bool = False) :
             ip_address, port = split_ip_port(addr)
 
             # Check subversion and block height criteria
-            if subver >= "DIVI Core: 3.0.0.0" and starting_height >= block_count - 1000 :
+            if subver >= "DIVI Core: 3.0.0.0" and synced_blocks >= block_count - 1000 :
                 if subver not in filtered_peers :
                     filtered_peers[subver] = []
                 filtered_peers[subver].append({"ip" : ip_address, "port" : port})
