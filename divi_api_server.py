@@ -217,7 +217,7 @@ def divi_address_to_scripthash(address: str) -> str:
 app = FastAPI(
     title="Divi Blockchain API",
     description="API for interacting with the Divi Blockchain via RPC calls",
-    version="1.1.0"
+    version="1.2.0"
 )
 
 # Cache settings
