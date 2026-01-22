@@ -138,7 +138,13 @@ Dockerfile.*
 # VS Code settings
 .vscode/
 
+# PyCharm / IntelliJ IDEA
+.idea/
+
 # Local environment variables
 .env.local
 .env.*.local
 .env
+
+# Task files
+tasks/*

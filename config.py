@@ -1,69 +1,132 @@
 import os
 import sys
 from dotenv import load_dotenv
+from typing import Optional, Dict, Tuple
 
 # Load environment variables from .env files
-load_dotenv()  # This will load .env by default
-load_dotenv('.env.local')  # Load .env.local if it exists
-load_dotenv('.env.development.local')  # Load .env.development.local if it exists
-load_dotenv('.env.production.local')  # Load .env.production.local if it exists
+load_dotenv()
+load_dotenv('.env.local')
+load_dotenv('.env.development.local')
+load_dotenv('.env.production.local')
 
-def get_conf_path():
-    """
-    Determine the appropriate configuration file path based on the platform and read the rpcuser, rpcpassword, and rpcport.
-    """
+# Constants (Replace Magic Numbers/Strings)
+DEFAULT_RPC_PORT = 51473
+DEFAULT_RPC_HOST = '127.0.0.1'
+DEFAULT_HOST = '127.0.0.1'
+DEFAULT_PORT = 8000
+# ElectrumX (DEX) server defaults
+DEFAULT_ELECTRUMX_HOST = 'localhost'
+DEFAULT_ELECTRUMX_PORT = 50002  # Standard ElectrumX TCP port
+CONFIG_FILE_NAME = 'divi.conf'
+
+
+def get_platform_config_path() -> str:
+    """Get platform-specific config file path."""
     if sys.platform.startswith('win'):
-        path = os.path.join(os.getenv('APPDATA'), 'DIVI', 'divi.conf')
+        return os.path.join(
+            os.getenv('APPDATA'), 'DIVI', CONFIG_FILE_NAME
+        )
     elif sys.platform == 'darwin':
-        path = os.path.join(os.path.expanduser("~"), 'Library', 'Application Support', 'DIVI', 'divi.conf')
+        return os.path.join(
+            os.path.expanduser("~"),
+            'Library', 'Application Support', 'DIVI', CONFIG_FILE_NAME
+        )
     elif sys.platform.startswith('linux'):
-        path = os.path.join(os.path.expanduser("~"), '.divi', 'divi.conf')
+        return os.path.join(
+            os.path.expanduser("~"), '.divi', CONFIG_FILE_NAME
+        )
     else:
         raise OSError(f"Unsupported platform: {sys.platform}")
 
-    config = {
-        'rpc_user': None,
-        'rpc_password': None,
-        'rpc_port': None,
-        'rpc_host': None,
-        'host': None,
-        'port': None
-    }
 
-    # if os.getenv('IGNORE_DIVID_CONF', 'TRUE') == 'TRUE':
+def parse_config_line(line: str) -> Optional[Tuple[str, str]]:
+    """Parse a single config file line into key-value pair."""
+    if "=" not in line:
+        return None
+    key, value = line.split("=", 1)
+    return (key.strip(), value.strip())
 
 
-    if os.getenv('IGNORE_DIVID_CONF', 'FALSE') == 'FALSE':
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                for line in f:
-                    if "=" not in line:
-                        continue
-                    key, value = line.split("=", 1)
-                    value = value.strip()
+def load_config_from_file(path: str) -> Dict[str, str]:
+    """Load configuration from divi.conf file."""
+    config = {}
+    if not os.path.exists(path):
+        return config
 
-                    if key == "rpcuser":
-                        config['rpc_user'] = value
-                    elif key == "rpcpassword":
-                        config['rpc_password'] = value
-                    elif key == "rpcport":
-                        config['rpc_port'] = int(value)
-                    elif key == "rpcbind":
-                        config['rpc_host'] = value
-
-    # Fallback to environment variables
-    config['rpc_user'] = config['rpc_user'] or os.getenv('RPC_USER')
-    config['rpc_password'] = config['rpc_password'] or os.getenv('RPC_PASS')
-    config['rpc_port'] = config['rpc_port'] or int(os.getenv('RPC_PORT', 51473))  # Default to port 51473
-    config['rpc_host'] = config['rpc_host'] or os.getenv('RPC_HOST', '127.0.0.1')
-    config['host'] = config['host'] or os.getenv('HOST', '127.0.0.1')
-    config['port'] = config['port'] or int(os.getenv('PORT', 8000))
-
-    if not config['rpc_user'] or not config['rpc_password']:
-        raise ValueError("Missing rpcuser or rpcpassword in configuration file or RPC_USER or RPC_PASS environment variables.")
+    with open(path, 'r') as f:
+        for line in f:
+            parsed = parse_config_line(line)
+            if parsed:
+                key, value = parsed
+                config[key] = value
 
     return config
 
+
+def get_env_value(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Get environment variable value."""
+    return os.getenv(key, default)
+
+
+def get_env_int(key: str, default: int) -> int:
+    """Get environment variable as integer."""
+    value = os.getenv(key)
+    return int(value) if value else default
+
+
+def apply_file_config(config: Dict, file_config: Dict[str, str]) -> None:
+    """Apply file configuration values to config dict."""
+    if "rpcuser" in file_config:
+        config['rpc_user'] = file_config["rpcuser"]
+    if "rpcpassword" in file_config:
+        config['rpc_password'] = file_config["rpcpassword"]
+    if "rpcport" in file_config:
+        config['rpc_port'] = int(file_config["rpcport"])
+    if "rpcbind" in file_config:
+        config['rpc_host'] = file_config["rpcbind"]
+
+
+def validate_config(config: dict) -> None:
+    """Validate required configuration values."""
+    if not config.get('rpc_user') or not config.get('rpc_password'):
+        raise ValueError(
+            "Missing rpcuser or rpcpassword in configuration file "
+            "or RPC_USER or RPC_PASS environment variables."
+        )
+
+
+def get_conf_path() -> Dict:
+    """
+    Load configuration from environment variables and divi.conf file.
+
+    Priority: File config > Environment variables > Defaults
+    """
+    # Initialize with environment variables and defaults
+    config = {
+        'rpc_user': get_env_value('RPC_USER'),
+        'rpc_password': get_env_value('RPC_PASS'),
+        'rpc_port': get_env_int('RPC_PORT', DEFAULT_RPC_PORT),
+        'rpc_host': get_env_value('RPC_HOST', DEFAULT_RPC_HOST),
+        'host': get_env_value('HOST', DEFAULT_HOST),
+        'port': get_env_int('PORT', DEFAULT_PORT),
+        # ElectrumX (DEX) server configuration
+        'electrumx_host': get_env_value('ELECTRUMX_HOST', DEFAULT_ELECTRUMX_HOST),
+        'electrumx_port': get_env_int('ELECTRUMX_PORT', DEFAULT_ELECTRUMX_PORT)
+    }
+
+    # Override with file configuration if enabled
+    if get_env_value('IGNORE_DIVID_CONF', 'FALSE') == 'FALSE':
+        config_path = get_platform_config_path()
+        file_config = load_config_from_file(config_path)
+        apply_file_config(config, file_config)
+
+    validate_config(config)
+    return config
+
+
 # Load RPC credentials
 config = get_conf_path()
-RPC_URL = f"http://{config['rpc_user']}:{config['rpc_password']}@{config['rpc_host']}:{config['rpc_port']}"
+RPC_URL = (
+    f"http://{config['rpc_user']}:{config['rpc_password']}"
+    f"@{config['rpc_host']}:{config['rpc_port']}"
+)
