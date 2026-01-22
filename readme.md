@@ -8,6 +8,7 @@ This repository provides a FastAPI-based application to interact with the Divi B
 - Retrieve UTXOs, transaction history, and balances for addresses.
 - Send raw transactions to the network.
 - Mempool information and lottery block winners information.
+- **ElectrumX (DEX) Integration**: Access ElectrumX server endpoints for wallet functionality with vault balance breakdown.
 - Cross-origin support (CORS) for local development.
 
 ## Prerequisites
@@ -15,6 +16,7 @@ This repository provides a FastAPI-based application to interact with the Divi B
 - Python 3.8 or later
 - A running Divi blockchain node with RPC enabled
 - RPC credentials configured either in a configuration file (`divi.conf`) or as environment variables.
+- **ElectrumX server** (optional, required only for `/dex/` endpoints): Running Divi ElectrumX server on `localhost:50002` (or configured host/port)
 
 ## Installation
 
@@ -53,6 +55,9 @@ This repository provides a FastAPI-based application to interact with the Divi B
       export HOST=your_host  # default is 127.0.0.1
       export PORT=your_port  # default is 8000
       export IGNORE_DIVID_CONF=TRUE # Use this to skip checking for a divid.conf file
+      # ElectrumX (DEX) server configuration (optional, only needed for /dex/ endpoints)
+      export ELECTRUMX_HOST=localhost  # default is localhost
+      export ELECTRUMX_PORT=50002  # default is 50002 (standard ElectrumX TCP port)
       ```
 
    - Using a `.env` file
@@ -67,6 +72,9 @@ This repository provides a FastAPI-based application to interact with the Divi B
       HOST=your_host  # default is 127.0.0.1
       PORT=your_port  # default is 8000
       IGNORE_DIVID_CONF=TRUE # Use this to skip checking for a divid.conf file
+      # ElectrumX (DEX) server configuration (optional, only needed for /dex/ endpoints)
+      ELECTRUMX_HOST=localhost  # default is localhost
+      ELECTRUMX_PORT=50002  # default is 50002 (standard ElectrumX TCP port)
       ```
 
    
@@ -134,9 +142,23 @@ Below are some example API calls that can be made using `curl` or any HTTP clien
         -d '{"hexstring": "your_raw_transaction_hex"}'
    ```
 
+- **Get balance with vault breakdown (ElectrumX):**
+
+   ```bash
+   curl http://127.0.0.1:8000/dex/balance/{address_or_scripthash}
+   ```
+
+- **Get transaction history (ElectrumX):**
+
+   ```bash
+   curl http://127.0.0.1:8000/dex/history/{address_or_scripthash}
+   ```
+
 ## API Endpoints
 
 The following is a summary of the available API endpoints:
+
+### Divi RPC Endpoints
 
 - `GET /ping`: Ping the server to ensure it's running.
 - `GET /blockcount`: Get the current block count of the Divi blockchain.
@@ -145,15 +167,42 @@ The following is a summary of the available API endpoints:
 - `GET /getaddressbalance/{address}/{isVault}`: Get the balance for a given address.
 - `POST /sendrawtransaction`: Broadcast a raw transaction to the blockchain.
 
+### ElectrumX (DEX) Endpoints
+
+These endpoints require a running ElectrumX server. If ElectrumX is not running, these endpoints will return a clear error message.
+
+- `GET /dex/balance/{identifier}`: Get balance with vault breakdown for address, vault_owner_key, or script hash.
+- `GET /dex/history/{identifier}`: Get transaction history for address, vault_owner_key, or script hash.
+- `GET /dex/transaction/{tx_hash}`: Get raw transaction hex by transaction hash.
+- `POST /dex/broadcast/{raw_tx}`: Broadcast raw transaction to network.
+- `GET /dex/unspent/{identifier}`: Get unspent UTXOs for address, vault_owner_key, or script hash.
+- `GET /dex/fee/estimate?blocks=2`: Get fee estimate (DIVI uses fixed 0.0001 DIVI fee).
+- `GET /dex/fee/relay`: Get minimum relay fee (DIVI uses fixed 0.0001 DIVI fee).
+
+**Note**: The `/dex/` endpoints accept either a DIVI address, vault_owner_key, or script hash (64 hex characters) as the `identifier` parameter.
+
 For a complete list of endpoints, visit the API documentation at `http://127.0.0.1:8000/docs`.
 
 ## Configuration
 
 The RPC credentials are read from either the `divi.conf` file or environment variables. The following environment variables can be used:
 
+### Divi RPC Configuration
+
 - `RPC_USER`: Your Divi node's RPC username.
 - `RPC_PASS`: Your Divi node's RPC password.
 - `RPC_PORT`: The RPC port your Divi node is using (default: 51473).
+- `RPC_HOST`: The RPC host your Divi node is using (default: 127.0.0.1).
+- `HOST`: Host to bind the API server (default: 127.0.0.1).
+- `PORT`: Port to bind the API server (default: 8000).
+- `IGNORE_DIVID_CONF`: Set to `TRUE` to skip checking for `divi.conf` file (default: FALSE).
+
+### ElectrumX (DEX) Configuration
+
+- `ELECTRUMX_HOST`: ElectrumX server hostname (default: localhost).
+- `ELECTRUMX_PORT`: ElectrumX server TCP port (default: 50002).
+
+**Note**: If ElectrumX server is not running, the API will still start successfully. Only the `/dex/` endpoints will return an error message indicating that ElectrumX is not running.
 
 ## Logging
 
@@ -282,6 +331,24 @@ export LOG_LEVEL=DEBUG  # or INFO, WARNING, ERROR, CRITICAL
 ### Caution
 
 - Allowing `allow_origins=["*"]` in production can expose your API to security risks. Ensure you review and restrict CORS as needed based on your use case.
+
+---
+
+## Version
+
+Current version: **1.2.0**
+
+### Changelog
+
+#### Version 1.2.0
+- Added ElectrumX (DEX) integration with 7 new endpoints (`/dex/*`)
+- Refactored configuration system for better maintainability
+- Added configurable ElectrumX host and port
+- Improved error handling with user-friendly messages
+- Added support for address, vault_owner_key, and script hash identifiers
+
+#### Version 1.1.0
+- Initial release with Divi RPC endpoints
 
 ---
 
