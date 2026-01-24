@@ -138,9 +138,14 @@ class ElectrumXClient:
         """Get transaction history for a script hash"""
         return self._call("blockchain.scripthash.get_history", [scripthash])
 
-    def get_transaction(self, tx_hash):
-        """Get raw transaction hex by transaction hash"""
-        return self._call("blockchain.transaction.get", [tx_hash])
+    def get_transaction(self, tx_hash, verbose=False):
+        """Get raw transaction hex by transaction hash
+        
+        Args:
+            tx_hash: Transaction hash (64 hex characters)
+            verbose: If True, returns decoded transaction object (if supported by server)
+        """
+        return self._call("blockchain.transaction.get", [tx_hash, verbose])
 
     def broadcast_transaction(self, raw_tx):
         """Broadcast raw transaction to network"""
@@ -661,8 +666,8 @@ async def dex_get_history(identifier: str):
 
 @app.get("/dex/transaction/{tx_hash}",
          summary="Get Raw Transaction",
-         description="Get raw transaction hex by transaction hash")
-async def dex_get_transaction(tx_hash: str):
+         description="Get raw transaction hex by transaction hash. Use verbose=true to get decoded transaction object (if supported by server).")
+async def dex_get_transaction(tx_hash: str, verbose: bool = False):
     # Validate tx_hash format (64 hex chars)
     if not is_valid_hex_hash(tx_hash, 64):
         raise HTTPException(
@@ -671,7 +676,7 @@ async def dex_get_transaction(tx_hash: str):
         )
     
     try:
-        result = dex_client.get_transaction(tx_hash)
+        result = dex_client.get_transaction(tx_hash, verbose=verbose)
         return handle_rpc_response(result)
     except ElectrumXConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
